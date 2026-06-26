@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Notes Dashboard</title>
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Phosphor Icons for modern premium UI feel -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+</head>
+<body>
+    <div class="background-glow"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i class="ph-fill ph-database"></i>
+                </div>
+                <div class="logo-text">
+                    <h1>BigQuery</h1>
+                    <span class="sub-logo">Release Hub</span>
+                </div>
+            </div>
+            
+            <p class="app-subtitle">Track, filter, and share Google BigQuery platform updates and features in real-time.</p>
+        </header>
+
+        <!-- Search and Filters Section -->
+        <section class="controls-section">
+            <div class="search-wrapper">
+                <i class="ph ph-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search updates, features, keywords..." aria-label="Search release notes">
+                <button id="clear-search" class="clear-btn" style="display: none;" aria-label="Clear search">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            
+            <div class="filters-row">
+                <div class="filter-group" id="type-filters">
+                    <button class="filter-chip active" data-type="all">All Updates</button>
+                    <button class="filter-chip" data-type="feature">
+                        <span class="badge-dot feature"></span> Features
+                    </button>
+                    <button class="filter-chip" data-type="change">
+                        <span class="badge-dot change"></span> Changes
+                    </button>
+                    <button class="filter-chip" data-type="announcement">
+                        <span class="badge-dot announcement"></span> Announcements
+                    </button>
+                    <button class="filter-chip" data-type="deprecation">
+                        <span class="badge-dot deprecation"></span> Deprecations
+                    </button>
+                </div>
+                
+                <button id="refresh-btn" class="icon-btn btn-primary" title="Refresh Release Notes" aria-label="Refresh notes">
+                    <i class="ph ph-arrows-clockwise" id="refresh-icon"></i>
+                    <span>Refresh</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- Releases Grid -->
+        <main class="releases-container">
+            <!-- Skeleton Loading State (rendered by default, hidden by JS) -->
+            <div id="loading-skeletons" class="skeletons-grid">
+                <!-- Skeleton Card 1 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line badge"></div>
+                    </div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line partial"></div>
+                    </div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton-line button"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 2 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line badge"></div>
+                    </div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line partial"></div>
+                    </div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton-line button"></div>
+                    </div>
+                </div>
+                <!-- Skeleton Card 3 -->
+                <div class="skeleton-card">
+                    <div class="skeleton-header">
+                        <div class="skeleton-line short"></div>
+                        <div class="skeleton-line badge"></div>
+                    </div>
+                    <div class="skeleton-content">
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line"></div>
+                        <div class="skeleton-line partial"></div>
+                    </div>
+                    <div class="skeleton-footer">
+                        <div class="skeleton-line button"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Real Release Cards Container -->
+            <div id="releases-grid" class="releases-grid" style="display: none;"></div>
+
+            <!-- Empty State -->
+            <div id="empty-state" class="empty-state" style="display: none;">
+                <div class="empty-icon">
+                    <i class="ph ph-smiley-sad"></i>
+                </div>
+                <h3>No updates found</h3>
+                <p>Try adjusting your search terms or filters to find what you are looking for.</p>
+                <button id="reset-filters-btn" class="btn-secondary">Reset Filters</button>
+            </div>
+        </main>
+        
+        <!-- Footer -->
+        <footer class="app-footer-bar">
+            <p>BigQuery Release Hub &bull; Powered by Flask, BeautifulSoup, and modern UI design.</p>
+        </footer>
+    </div>
+
+    <!-- Modern Tweet/X Sharing Modal -->
+    <div id="tweet-modal" class="modal-overlay" aria-hidden="true">
+        <div class="modal-card">
+            <div class="modal-header">
+                <div class="modal-title">
+                    <i class="ph ph-x-logo"></i>
+                    <h2>Share on X</h2>
+                </div>
+                <button class="modal-close-btn" id="close-modal-btn" aria-label="Close modal">
+                    <i class="ph ph-x"></i>
+                </button>
+            </div>
+            
+            <div class="modal-body">
+                <label for="tweet-textarea" class="modal-label">Customize your update text:</label>
+                <div class="textarea-wrapper">
+                    <textarea id="tweet-textarea" rows="5" placeholder="Compose your post..."></textarea>
+                </div>
+                
+                <div class="tweet-meta-row">
+                    <span id="char-counter" class="char-counter">0 / 280</span>
+                    <span class="link-notice"><i class="ph ph-info"></i> Includes 23-char link reservation</span>
+                </div>
+                
+                <!-- Preview area -->
+                <div class="tweet-preview-card">
+                    <div class="preview-header">
+                        <div class="preview-avatar">BQ</div>
+                        <div class="preview-user">
+                            <span class="user-display">BigQuery Releases</span>
+                            <span class="user-handle">@bq_releases</span>
+                        </div>
+                    </div>
+                    <div class="preview-content" id="tweet-preview-text"></div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button class="btn-secondary" id="copy-tweet-btn">
+                    <i class="ph ph-copy"></i>
+                    <span>Copy Text</span>
+                </button>
+                <button class="btn-primary" id="share-x-btn">
+                    <i class="ph ph-paper-plane-tilt"></i>
+                    <span>Share on X</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Frontend Script -->
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
