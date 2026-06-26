@@ -19,14 +19,19 @@
     <div class="app-container">
         <!-- Header -->
         <header class="app-header">
-            <div class="logo-area">
-                <div class="logo-icon">
-                    <i class="ph-fill ph-database"></i>
+            <div class="header-top-row">
+                <div class="logo-area">
+                    <div class="logo-icon">
+                        <i class="ph-fill ph-database"></i>
+                    </div>
+                    <div class="logo-text">
+                        <h1>BigQuery</h1>
+                        <span class="sub-logo">Release Hub</span>
+                    </div>
                 </div>
-                <div class="logo-text">
-                    <h1>BigQuery</h1>
-                    <span class="sub-logo">Release Hub</span>
-                </div>
+                <button id="theme-toggle-btn" class="theme-toggle-btn" aria-label="Toggle dark/light theme">
+                    <i class="ph ph-sun" id="theme-icon"></i>
+                </button>
             </div>
             
             <p class="app-subtitle">Track, filter, and share Google BigQuery platform updates and features in real-time.</p>
@@ -44,25 +49,18 @@
             
             <div class="filters-row">
                 <div class="filter-group" id="type-filters">
-                    <button class="filter-chip active" data-type="all">All Updates</button>
-                    <button class="filter-chip" data-type="feature">
-                        <span class="badge-dot feature"></span> Features
-                    </button>
-                    <button class="filter-chip" data-type="change">
-                        <span class="badge-dot change"></span> Changes
-                    </button>
-                    <button class="filter-chip" data-type="announcement">
-                        <span class="badge-dot announcement"></span> Announcements
-                    </button>
-                    <button class="filter-chip" data-type="deprecation">
-                        <span class="badge-dot deprecation"></span> Deprecations
-                    </button>
                 </div>
                 
-                <button id="refresh-btn" class="icon-btn btn-primary" title="Refresh Release Notes" aria-label="Refresh notes">
-                    <i class="ph ph-arrows-clockwise" id="refresh-icon"></i>
-                    <span>Refresh</span>
-                </button>
+                <div class="actions-group">
+                    <button id="export-csv-btn" class="icon-btn btn-secondary" title="Export to CSV" aria-label="Export to CSV">
+                        <i class="ph ph-file-csv"></i>
+                        <span>Export CSV</span>
+                    </button>
+                    <button id="refresh-btn" class="icon-btn btn-primary" title="Refresh Release Notes" aria-label="Refresh notes">
+                        <i class="ph ph-arrows-clockwise" id="refresh-icon"></i>
+                        <span>Refresh</span>
+                    </button>
+                </div>
             </div>
         </section>
 

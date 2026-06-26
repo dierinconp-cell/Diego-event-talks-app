@@ -28,6 +28,9 @@ const elements = {
     releasesGrid: document.getElementById('releases-grid'),
     emptyState: document.getElementById('empty-state'),
     resetFiltersBtn: document.getElementById('reset-filters-btn'),
+    exportCsvBtn: document.getElementById('export-csv-btn'),
+    themeToggleBtn: document.getElementById('theme-toggle-btn'),
+    themeIcon: document.getElementById('theme-icon'),
     
     // Modal elements
     tweetModal: document.getElementById('tweet-modal'),
@@ -41,6 +44,7 @@ const elements = {
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     setupEventListeners();
     fetchReleases();
 });
@@ -56,6 +60,16 @@ function setupEventListeners() {
     
     // Refresh button handler
     elements.refreshBtn.addEventListener('click', fetchReleases);
+    
+    // Export CSV button handler
+    if (elements.exportCsvBtn) {
+        elements.exportCsvBtn.addEventListener('click', exportToCSV);
+    }
+    
+    // Theme toggle button handler
+    if (elements.themeToggleBtn) {
+        elements.themeToggleBtn.addEventListener('click', toggleTheme);
+    }
     
     // Empty state reset button
     elements.resetFiltersBtn.addEventListener('click', resetFilters);
@@ -88,6 +102,7 @@ async function fetchReleases() {
         if (!response.ok) throw new Error('Network response was not ok');
         
         state.allReleases = await response.json();
+        buildDynamicFilters();
         applyFiltersAndSearch();
     } catch (error) {
         console.error('Failed to fetch releases:', error);
@@ -96,6 +111,80 @@ async function fetchReleases() {
     } finally {
         setLoadingState(false);
     }
+}
+
+// Build Dynamic Category Filters from active data
+function buildDynamicFilters() {
+    if (!elements.typeFilters) return;
+
+    // Scan unique types from allReleases
+    const uniqueTypes = new Set();
+    state.allReleases.forEach(item => {
+        if (item.type) {
+            const trimmed = item.type.trim();
+            if (trimmed) {
+                uniqueTypes.add(trimmed);
+            }
+        }
+    });
+
+    // Define standard categories and prioritization
+    const standardPriority = {
+        'feature': 1,
+        'change': 2,
+        'announcement': 3,
+        'deprecation': 4
+    };
+
+    // Sort unique types
+    const sortedTypes = Array.from(uniqueTypes).sort((a, b) => {
+        const priorityA = standardPriority[a.toLowerCase()] || 999;
+        const priorityB = standardPriority[b.toLowerCase()] || 999;
+        
+        if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+        }
+        return a.localeCompare(b);
+    });
+
+    // Helper for pluralization
+    function getDisplayName(type) {
+        const typeLower = type.toLowerCase();
+        if (typeLower === 'feature') return 'Features';
+        if (typeLower === 'change') return 'Changes';
+        if (typeLower === 'announcement') return 'Announcements';
+        if (typeLower === 'deprecation') return 'Deprecations';
+        return type;
+    }
+
+    // Build buttons HTML dynamically
+    // Start with the 'All Updates' button
+    const allBtn = document.createElement('button');
+    allBtn.className = `filter-chip${state.activeFilter === 'all' ? ' active' : ''}`;
+    allBtn.dataset.type = 'all';
+    allBtn.textContent = 'All Updates';
+    
+    // Clear and build container
+    elements.typeFilters.innerHTML = '';
+    elements.typeFilters.appendChild(allBtn);
+
+    // Build the dynamic buttons
+    sortedTypes.forEach(type => {
+        const typeLower = type.toLowerCase();
+        const btn = document.createElement('button');
+        
+        const isActive = (state.activeFilter === typeLower);
+        btn.className = `filter-chip${isActive ? ' active' : ''}`;
+        btn.dataset.type = typeLower;
+
+        const dot = document.createElement('span');
+        dot.className = `badge-dot ${typeLower}`;
+        
+        btn.appendChild(dot);
+        btn.appendChild(document.createTextNode(' ' + getDisplayName(type)));
+        
+        elements.typeFilters.appendChild(btn);
+    });
 }
 
 // Set Loading State
@@ -271,15 +360,36 @@ function createReleaseCard(item, index) {
         link.setAttribute('rel', 'noopener noreferrer');
     });
     
-    // Footer / Tweet Button
+    // Footer / Tweet & Copy Buttons
     const cardFooter = document.createElement('div');
     cardFooter.className = 'card-footer';
+    
+    const copyBtn = document.createElement('button');
+    copyBtn.className = 'copy-card-btn';
+    copyBtn.innerHTML = `<i class="ph ph-copy"></i> Copy`;
+    copyBtn.addEventListener('click', async () => {
+        const plainContent = getPlainText(item.content);
+        const copyText = `BigQuery [${item.type}] (${item.date}): ${plainContent}\nLink: ${item.link}`;
+        try {
+            await navigator.clipboard.writeText(copyText);
+            const originalHTML = copyBtn.innerHTML;
+            copyBtn.innerHTML = `<i class="ph ph-check"></i> Copied!`;
+            copyBtn.disabled = true;
+            setTimeout(() => {
+                copyBtn.innerHTML = originalHTML;
+                copyBtn.disabled = false;
+            }, 2000);
+        } catch (err) {
+            console.error('Failed to copy text: ', err);
+        }
+    });
     
     const tweetBtn = document.createElement('button');
     tweetBtn.className = 'tweet-btn';
     tweetBtn.innerHTML = `<i class="ph-bold ph-x-logo"></i> Tweet`;
     tweetBtn.addEventListener('click', () => openTweetModal(item));
     
+    cardFooter.appendChild(copyBtn);
     cardFooter.appendChild(tweetBtn);
     
     card.appendChild(cardHeader);
@@ -392,4 +502,75 @@ function showErrorEmptyState() {
     
     elements.emptyState.querySelector('h3').textContent = 'Failed to load updates';
     elements.emptyState.querySelector('p').textContent = 'Unable to communicate with the releases API. Please check your server status.';
+}
+
+// Theme management
+function initTheme() {
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        if (elements.themeIcon) {
+            elements.themeIcon.className = 'ph ph-moon';
+        }
+    } else {
+        document.body.classList.remove('light-theme');
+        if (elements.themeIcon) {
+            elements.themeIcon.className = 'ph ph-sun';
+        }
+    }
+}
+
+function toggleTheme() {
+    const isLight = document.body.classList.toggle('light-theme');
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+    if (elements.themeIcon) {
+        elements.themeIcon.className = isLight ? 'ph ph-moon' : 'ph ph-sun';
+    }
+}
+
+// Export filtered releases to CSV
+function exportToCSV() {
+    if (state.filteredReleases.length === 0) {
+        alert("No releases to export.");
+        return;
+    }
+    
+    const headers = ['Date', 'Type', 'Description', 'Link'];
+    
+    function escapeCSV(text) {
+        if (text === null || text === undefined) {
+            return '';
+        }
+        let cleanText = text.toString().replace(/"/g, '""');
+        if (cleanText.includes(',') || cleanText.includes('\n') || cleanText.includes('\r') || cleanText.includes('"')) {
+            cleanText = `"${cleanText}"`;
+        }
+        return cleanText;
+    }
+    
+    const rows = state.filteredReleases.map(release => {
+        const dateStr = release.date;
+        const typeStr = release.type;
+        const descStr = getPlainText(release.content);
+        const linkStr = release.link;
+        
+        return [
+            escapeCSV(dateStr),
+            escapeCSV(typeStr),
+            escapeCSV(descStr),
+            escapeCSV(linkStr)
+        ].join(',');
+    });
+    
+    const csvContent = [headers.join(','), ...rows].join('\n');
+    
+    const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'bigquery_releases.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 }
